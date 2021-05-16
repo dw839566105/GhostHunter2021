@@ -1,0 +1,12 @@
+.PHONY: all
+
+all: PE time total
+
+PE:
+	python3 calib/calib_PE.py
+
+time:
+	python3 calib/calib_Time.py
+
+total:
+	python3 calib/calib_torch.py
