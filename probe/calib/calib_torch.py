@@ -5,6 +5,7 @@ from numba import jit
 from zernike import RZern
 import h5py
 
+path='/mnt/stage/douwei/GhostHunter'
 @jit(nopython=True)
 def legval(x, c):
     """
@@ -35,7 +36,7 @@ def read_file_series(fileNo):
     
     for file in np.arange(0, fileNo, 1):
         print(file)
-        h = tables.open_file('/home/douwei/JUNO_probe/basis_%02d_small.h5' % file)
+        h = tables.open_file('%s/basis_%02d.h5' % (path, file))
         PE_tmp = h.root.PE[:]
         cos_theta_tmp = h.root.cos_theta[:]
         r_tmp = h.root.r[:]/17700
@@ -48,7 +49,7 @@ def read_file_series(fileNo):
     return r, t, cos_theta, PE
 
 def read_file_single(fileNo):
-    h = tables.open_file('/home/douwei/JUNO_probe/basis_%02d_small.h5' % fileNo)
+    h = tables.open_file('%s/basis_%02d.h5' % (path, file))
     PE = h.root.PE[:]
     cos_theta = h.root.cos_theta[:]
     r = h.root.r[:]/17700
@@ -87,10 +88,10 @@ def calc_basis(order1, order2, r, cos_theta, t):
     for index1 in np.arange(X_total.shape[1]):
         print(index1)
         for index2 in np.arange(T_total.shape[1]):
-            basis[:, index1 + index2*T_total.shape[1]] = X_total[:,index1] * T_total[:,index2]
+            basis[:, index2 + index1*T_total.shape[1]] = X_total[:,index1] * T_total[:,index2]
     
     return basis, t_rep, r_rep
-
+'''
 import tables
 h1 = tables.open_file('./coeff_PE.h5')
 PE_coeff = h1.root.coeff[:]
@@ -106,8 +107,8 @@ for index1 in np.arange(PE_coeff.shape[0]):
             coeff[index1 + index2*Time_coeff.shape[0]] = PE_coeff[index1] * Time_coeff[0]
         if index2 == 0:
             coeff[index1 + index2*Time_coeff.shape[0]] = PE_coeff[0] * Time_coeff[index2]
-
-fileNo = np.int(10)
+'''
+fileNo = np.int(1)
 # r, t, cos_theta, PE = read_file_single(fileNo)
 r, t, cos_theta, PE = read_file_series(fileNo)
 basis, t_rep, r_rep = calc_basis(10, 10, r, cos_theta, t)
@@ -125,7 +126,7 @@ device = torch.device("cpu")
 x = torch.from_numpy(basis).to(device).float()
 y = torch.from_numpy(PE).to(device).float()
 
-coeff_new = torch.zeros_like(torch.from_numpy(coeff).to(device).float())
+coeff_new = torch.zeros(basis.shape[1]).to(device).float()
 coeff_new[0] = torch.log(torch.mean(y))
 class DynamicNet(torch.nn.Module):
     def __init__(self):
