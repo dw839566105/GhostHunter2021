@@ -61,12 +61,12 @@ def polyval(p, x):
 def load_coeff():
 
     # PE Zernike coefficients
-    h = tables.open_file('./PE_dns_15.h5','r')
+    h = tables.open_file('PE_dns_15.h5','r')
     coeff_pe = h.root.coeff15[:]
     h.close()
 
     # time Zernike coefficients
-    h = tables.open_file('./time_012.h5','r')
+    h = tables.open_file('Time_vis_dn0_20.h5','r')
     coeff_time = h.root.coeff20[:]
     h.close()
     return coeff_pe, coeff_time
@@ -200,13 +200,13 @@ def recon(fin, fout):
     recondata = ReconTable.row
     # Loop for event
 
-    h_PE = tables.open_file('../waveform/final-data/charge/wf_charge_%03d.h5' % eval(fin),'r')
+    h_PE = tables.open_file('/mnt/stage/douwei/GH2021/final-data/charge/wf_charge_%03d.h5' % eval(fin),'r')
     charge = h_PE.root.charge[:]
     EventID = h_PE.root.EventID[:]
     ChannelID = h_PE.root.ChannelID[:]
     h_PE.close()
 
-    h_time = tables.open_file('../waveform/final-data/time/wf_time_%03d.h5' % eval(fin),'r')
+    h_time = tables.open_file('/mnt/stage/douwei/GH2021/final-data/time/wf_time_%03d.h5' % eval(fin),'r')
     time = h_time.root.time[:]
     h_time.close()
    
@@ -215,20 +215,24 @@ def recon(fin, fout):
     charge[charge<0] = 0
 
     time = time/np.sum(time,axis=1)[:,np.newaxis]*charge[:,np.newaxis]
-    charge = np.round(charge)
-    PMT_bins = np.hstack((-0.5,PMT_No+0.5))
-
-    pe_array, _ = np.histogram(ChannelID, bins=PMT_bins, weights=charge)
+    #charge = np.round(charge)
+    
     
     time_series, ch_series = np.meshgrid(np.arange(time.shape[1]), np.arange(time.shape[0]))
     weight_array = time.flatten()
     time_array = time_series.flatten()
     fired_PMT = ch_series.flatten()
     
+    
     index = (time_array>480) & (weight_array>0.1)
+
     weight_array = weight_array[index]
     fired_PMT = ChannelID[fired_PMT[index]]
-    time_array = time_array[index] 
+    time_array = time_array[index]
+    
+    PMT_bins = np.hstack((-0.5,PMT_No+0.5))
+    pe_array,_ = np.histogram(fired_PMT, bins=PMT_bins, weights=weight_array)
+    pe_array = np.round(pe_array)
     x0_in = np.zeros(4)
     #x0_in[-1] = np.quantile(time_array,0.12)
     w_ini = np.sum(1.5*np.atleast_2d(pe_array).T*PMT_pos, axis=0)/np.sum(pe_array)/shell
